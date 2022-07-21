@@ -6,6 +6,9 @@ dotenv.config();
 
 const config: HardhatUserConfig = {
   solidity: "0.8.9",
+  paths: {
+    tests: `./test/${process.env.TEST_DIR}`,
+  },
   // If we want gas to be reported.
   // gasReporter: {
   //   currency: "USD",
