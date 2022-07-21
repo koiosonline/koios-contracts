@@ -23,7 +23,7 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
 
     // Errors
     error AddressAlreadyClaimed(address _address);
-    error InvalidToken();
+    error InvalidSignature();
     error TokenIDDoesNotExist(uint256 tokenId);
     error PermissionDenied(string errorMessage, address caller);
 
@@ -49,65 +49,74 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
         _setupRole(TRANSFER_ROLE,  _msgSender());      
     }
 
+    /**
+     * @dev Mints a new token with the given ID to the caller. Requires the caller has not claimed given ID and a valid signature.
+     * @param _salt The random generated salt for the signature.
+     * @param _signature The signature signed by the signer.
+     * @param _tokenId The ID of the token to be minted.
+     */
     function claim(
         string calldata _salt, 
-        bytes calldata _token,
+        bytes calldata _signature,
         uint256 _tokenId
     ) public virtual {
         if(claimedNFT[_msgSender()][_tokenId]) revert AddressAlreadyClaimed(_msgSender());
-        if(!verifyTokenForAddress(_salt, _token, _tokenId,  _msgSender())) revert InvalidToken();
+        if(!verifyTokenForAddress(_salt, _signature, _tokenId,  _msgSender())) revert InvalidSignature();
         _mint(_msgSender(), _tokenId, 1, "");
         claimedNFT[_msgSender()][_tokenId] = true;
         emit tokenMinted(_tokenId,  _msgSender());
     }
 
-    // function claim(string calldata _salt, bytes calldata _token, uint256 _tokenId) external {
-    //     if(claimedNFT[_tokenId][_msg.Sender()]) revert AddressAlreadyClaimed(_msgSender());
-    //     if(!verifyTokenForAddress(_salt, _token, _tokenId  _msgSender())) revert InvalidToken();
-    //     _mint( _msgSender(), _tokenId);
-    //     claimedNFT[ _msgSender()] = true;
-    //     emit tokenMinted(_tokenId,  _msgSender());
-    // }
-
-    // Sets the signer for the ECDSA signature
-    function setSigner(address _signer) public callerIsSigner {
-        _setSigner(_signer);
+    /**
+     * @dev Sets the signer for the ECDSA signature, requires caller to have SIGNER_ROLE.
+     * @param _newSigner The new signer address.
+    */
+    function setSigner(address _newSigner) public callerIsSigner {
+        _setSigner(_newSigner);
     }
 
-    // // Metadata Section
-    // string private _tokenBaseURI;
-
-    // function _baseURI() internal view virtual override returns (string memory) {
-    //     return _tokenBaseURI;
-    // }
-
+    /**
+     * @dev Set base URI for the contract.
+     * @param _newURI The new baseURI for the contract.
+    */
     function setBaseURI(string calldata _newURI) external callerIsAdmin {
         _setBaseURI(_newURI);
     }
 
-    // function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-    //     if(!_exists(tokenId)) revert TokenIDDoesNotExist(tokenId);
-
-    //     string memory baseURI = _baseURI();
-    //     string memory json = ".json";
-
-    //     if (bytes(baseURI).length == 0)
-    //        return '';
-    //     return string(abi.encodePacked(baseURI, tokenId.toString(), json));
-    // }
-
-    // Override _safeTransferFrom function from the ERC-721 standard, making transfers only available to addresses that have a TRANSFER_ROLE
-    function _safeTransferFrom(address from,
-        address to,
-        uint256 id, uint256 amount, bytes memory data) internal virtual override(ERC1155) callerIsTransferrer {
-            super.safeTransferFrom(from, to, id, amount, data);
+    /**
+     * @dev Get base URI for the contract.
+     * @param tokenId The ID for the token.
+     * @param _newURI The new URI for the token.
+    */
+    function setTokenURI(uint256 tokenId, string calldata _newURI) external callerIsAdmin {
+        _setURI(tokenId, _newURI);
     }
 
-    // Override _safebatchTransferFrom function from the ERC-721 standard, making transfers only available to addresses that have a TRANSFER_ROLE
-    function _safeBatchTransferFrom(address from,
-        address to,
-        uint256[] memory ids, uint256[] memory amounts, bytes memory data) internal virtual override(ERC1155) callerIsTransferrer {
-            super.safeBatchTransferFrom(from, to, ids, amounts, data);
+    /**
+     * @dev Override safeTransferFrom function from the ERC-1155 standard, making transfers only available to addresses that have a TRANSFER_ROLE
+     * @param _from The address to transfer from.
+     * @param _to The address to transfer to.
+     * @param _tokenId The ID for the token.
+     * @param _data The data to transfer.
+    */
+    function safeTransferFrom(address _from,
+        address _to,
+        uint256 _tokenId, uint256 _amount, bytes memory _data) public virtual override(ERC1155) callerIsTransferrer {
+            super.safeTransferFrom(_from, _to, _tokenId, _amount, _data);
+    }
+
+    /**
+     * @dev Override safeBatchTransferFrom function from the ERC-1155 standard, making batch transfers only available to addresses that have a TRANSFER_ROLE
+     * @param _from The address to transfer from.
+     * @param _to The address to transfer to.
+     * @param _ids The IDS for the tokens.
+     * @param _amounts The amounts of the tokens.
+     * @param _data The data to transfer.
+    */
+    function safeBatchTransferFrom(address _from,
+        address _to,
+        uint256[] memory _ids, uint256[] memory _amounts, bytes memory _data) public virtual override(ERC1155) callerIsTransferrer {
+            super.safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
     }
 
     /**
