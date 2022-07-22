@@ -8,45 +8,58 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "./SignedTokenVerifierForId.sol";
 
+/**  
+* @title ERC1155 implementation for achievements @KOIOSDAO
+* @author PauwCrypto
+* @dev This contract uses an implementation of the ERC1155 contract with an extension for URI Storage per token.
+* The tokens are non-transferable and can only be minted with a verified signature.
+*/
 contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownable, SignedTokenVerifierForId {
     using Strings for uint256;
 
-    // Roles for the contract
+    string constant NAME = "Titan Achievements";
+    string constant SYMBOL = "TA";
+
     bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
     bytes32 public constant TRANSFER_ROLE = keccak256("TRANSFER_ROLE");
 
-    // Defines mapping for addresses that claimed
     mapping(address => mapping(uint256 => bool)) public claimedNFT;
    
-    // Events
     event tokenMinted(uint tokenID, address minterAddress);
 
-    // Errors
     error AddressAlreadyClaimed(address _address);
     error InvalidSignature();
     error TokenIDDoesNotExist(uint256 tokenId);
     error PermissionDenied(string errorMessage, address caller);
 
-    // Function modifiers
+    constructor() ERC1155("") {  
+        _setupRole(DEFAULT_ADMIN_ROLE,  _msgSender());
+        _setupRole(SIGNER_ROLE,   _msgSender());
+        _setupRole(TRANSFER_ROLE,  _msgSender());      
+    }
+
+    /**
+    * @dev Checks if the caller has the DEFAULT_ADMIN_ROLE.
+    */
     modifier callerIsAdmin() {
         if(!hasRole(DEFAULT_ADMIN_ROLE,  _msgSender())) revert PermissionDenied("Caller is not an admin",  _msgSender());
         _;
     }
 
+    /**
+    * @dev Checks if the caller has the SIGNER_ROLE.
+    */
     modifier callerIsSigner() {
         if(!hasRole(SIGNER_ROLE,  _msgSender())) revert PermissionDenied("Caller is not a signer",  _msgSender());
         _;
     }
 
+    /**
+    * @dev Checks if the caller has the TRANSFER_ROLE.
+    */
     modifier callerIsTransferrer() {
         if(!hasRole(TRANSFER_ROLE,  _msgSender())) revert PermissionDenied("Caller is not a transferrer",  _msgSender());
         _;
-    }
-
-    constructor() ERC1155("") {  
-        _setupRole(DEFAULT_ADMIN_ROLE,  _msgSender());
-        _setupRole(SIGNER_ROLE,   _msgSender());
-        _setupRole(TRANSFER_ROLE,  _msgSender());      
     }
 
     /**
@@ -73,7 +86,24 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
     */
     function setSigner(address _newSigner) public callerIsSigner {
         _setSigner(_newSigner);
+    } 
+
+
+    /**
+     * @dev Returns the name from the contract.
+     * @return NAME from the contract.
+    */
+    function name() public pure returns (string memory) {
+        return NAME;
     }
+
+    /**
+     * @dev Returns the symbol from the contract.
+     * @return SYMBOL from the contract.
+    */
+    function symbol() public pure returns (string memory) {
+        return SYMBOL;
+    } 
 
     /**
      * @dev Set base URI for the contract.
