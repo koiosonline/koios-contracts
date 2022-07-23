@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155URIStorage.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
-import "./SignedTokenVerifierForId.sol";
+import "./SignedTokenVerifier.sol";
 
 /**  
 * @title ERC1155 implementation for achievements @KOIOSDAO
@@ -14,10 +14,10 @@ import "./SignedTokenVerifierForId.sol";
 * @dev This contract uses an implementation of the ERC1155 contract with an extension for URI Storage per token.
 * The tokens are non-transferable and can only be minted with a verified signature.
 */
-contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownable, SignedTokenVerifierForId {
+contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownable, SignedTokenVerifier {
     using Strings for uint256;
 
-    string constant NAME = "Titan Achievements";
+    string constant NAME = "KOIOS Titan Achievements";
     string constant SYMBOL = "TA";
 
     bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
@@ -28,9 +28,9 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
     event tokenMinted(uint tokenID, address minterAddress);
 
     error AddressAlreadyClaimed(address _address);
-    error InvalidSignature();
-    error TokenIDDoesNotExist(uint256 tokenId);
-    error PermissionDenied(string errorMessage, address caller);
+    error InvalidSignature(string _salt, bytes _signature, uint256 _tokenId, address _caller);
+    error TokenIDDoesNotExist(uint256 _tokenId);
+    error PermissionDenied(string _errorMessage, address _caller);
 
     constructor() ERC1155("") {  
         _setupRole(DEFAULT_ADMIN_ROLE,  _msgSender());
@@ -72,9 +72,9 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
         string calldata _salt, 
         bytes calldata _signature,
         uint256 _tokenId
-    ) public virtual {
+    ) external {
         if(claimedNFT[_msgSender()][_tokenId]) revert AddressAlreadyClaimed(_msgSender());
-        if(!verifyTokenForAddress(_salt, _signature, _tokenId,  _msgSender())) revert InvalidSignature();
+        if(!verifyTokenForAddress(_salt, _signature, _msgSender(), _tokenId)) revert InvalidSignature(_salt, _signature, _tokenId, _msgSender());
         _mint(_msgSender(), _tokenId, 1, "");
         claimedNFT[_msgSender()][_tokenId] = true;
         emit tokenMinted(_tokenId,  _msgSender());
@@ -106,7 +106,7 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
     } 
 
     /**
-     * @dev Set base URI for the contract.
+     * @dev Sets base URI for the contract.
      * @param _newURI The new baseURI for the contract.
     */
     function setBaseURI(string calldata _newURI) external callerIsAdmin {
@@ -129,10 +129,10 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
      * @param _tokenId The ID for the token.
      * @param _data The data to transfer.
     */
-    function safeTransferFrom(address _from,
+    function _safeTransferFrom(address _from,
         address _to,
-        uint256 _tokenId, uint256 _amount, bytes memory _data) public virtual override(ERC1155) callerIsTransferrer {
-            super.safeTransferFrom(_from, _to, _tokenId, _amount, _data);
+        uint256 _tokenId, uint256 _amount, bytes memory _data) internal virtual override(ERC1155) callerIsTransferrer {
+            super._safeTransferFrom(_from, _to, _tokenId, _amount, _data);
     }
 
     /**
@@ -143,10 +143,10 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
      * @param _amounts The amounts of the tokens.
      * @param _data The data to transfer.
     */
-    function safeBatchTransferFrom(address _from,
+    function _safeBatchTransferFrom(address _from,
         address _to,
-        uint256[] memory _ids, uint256[] memory _amounts, bytes memory _data) public virtual override(ERC1155) callerIsTransferrer {
-            super.safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
+        uint256[] memory _ids, uint256[] memory _amounts, bytes memory _data) internal virtual override(ERC1155) callerIsTransferrer {
+            super._safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
     }
 
     /**

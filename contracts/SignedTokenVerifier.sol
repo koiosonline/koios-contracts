@@ -26,6 +26,14 @@ contract SignedTokenVerifier {
         return keccak256(abi.encode(salt, address(this), _address));
     }
 
+    function _hash(string calldata salt, uint256 _tokenId, address _address)
+        internal
+        view
+        returns (bytes32)
+    {
+        return keccak256(abi.encode(salt, address(this), _address, _tokenId));
+    }
+
     function _verify(bytes32 hash, bytes memory token)
         internal
         view
@@ -48,5 +56,14 @@ contract SignedTokenVerifier {
         address _address
     ) public view returns (bool) {
         return _verify(_hash(_salt, _address), _token);
+    }
+
+    function verifyTokenForAddress(
+        string calldata _salt,
+        bytes calldata _token,
+        address _address,
+        uint256 _tokenId
+    ) public view returns (bool) {
+        return _verify(_hash(_salt, _tokenId, _address), _token);
     }
 }

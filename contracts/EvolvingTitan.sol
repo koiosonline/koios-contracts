@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -9,6 +9,12 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "./SignedTokenVerifier.sol";
 
+/**  
+* @title ERC721 implementation for dynamic NFTs @KOIOSDAO
+* @author PauwCrypto
+* @dev This contract uses an implementation of the ERC721 contract with an extension for Enumerability using ERC721Enumerable.
+* The tokens are non-transferable and can only be minted with a verified signature.
+*/
 contract EvolvingTitan is AccessControlEnumerable, ERC721Enumerable, Ownable, SignedTokenVerifier {
     using Strings for uint256;
 
@@ -21,10 +27,10 @@ contract EvolvingTitan is AccessControlEnumerable, ERC721Enumerable, Ownable, Si
    
     event tokenMinted(uint tokenID, address minterAddress);
 
-    error AddressAlreadyClaimed(address _address);
-    error InvalidToken();
-    error TokenIDDoesNotExist(uint256 tokenId);
-    error PermissionDenied(string errorMessage, address caller);
+    error AddressAlreadyClaimed(address _caller);
+    error InvalidSignature(string _salt, bytes _signature, address _caller);
+    error TokenIDDoesNotExist(uint256 _tokenId);
+    error PermissionDenied(string _errorMessage, address _caller);
 
     constructor() ERC721("KOIOS Evolving Titan", "eTITAN") {  
         _setupRole(DEFAULT_ADMIN_ROLE,  _msgSender());
@@ -65,7 +71,7 @@ contract EvolvingTitan is AccessControlEnumerable, ERC721Enumerable, Ownable, Si
         uint256 _supply = totalSupply();
         uint256 _tokenId = _supply + 1;
         if(claimedNFT[ _msgSender()]) revert AddressAlreadyClaimed(_msgSender());
-        if(!verifyTokenForAddress(_salt, _signature,  _msgSender())) revert InvalidToken();
+        if(!verifyTokenForAddress(_salt, _signature,  _msgSender())) revert InvalidSignature(_salt, _signature, _msgSender());
         _safeMint( _msgSender(), _tokenId);
         claimedNFT[ _msgSender()] = true;
         emit tokenMinted(_tokenId,  _msgSender());

@@ -2,8 +2,6 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import crypto from "crypto";
-import { BigNumber } from "ethers";
-import { randomBytes } from "ethers/lib/utils";
 
 describe("Titan Achievements Function Tests", function () {
   async function setSignerFixture() {
@@ -129,11 +127,11 @@ describe("Titan Achievements Function Tests", function () {
       const token = await owner.signMessage(ethers.utils.arrayify(payloadHash));
 
       expect(
-        await contract.verifyTokenForAddress(
+        await contract["verifyTokenForAddress(string,bytes,address,uint256)"](
           salt,
           token,
-          tokenIdToMint,
-          student_1.address
+          student_1.address,
+          tokenIdToMint
         )
       ).to.be.equal(true);
     });
@@ -181,15 +179,15 @@ describe("Titan Achievements Function Tests", function () {
       const { contract, salt, student_1, tokenIdToMint } = await loadFixture(
         claimFixture
       );
+
+      const invalidSignature =
+        "0x346a39d20604ded0e99e102010ce5cc7de5510e420adba18e00487425841058817eed03ae59038b9bfab518ee51029de930cda1a1cdba111b244215144f704c51b";
+
       expect(
-        contract
-          .connect(student_1)
-          .claim(
-            salt,
-            "0x346a39d20604ded0e99e102010ce5cc7de5510e420adba18e00487425841058817eed03ae59038b9bfab518ee51029de930cda1a1cdba111b244215144f704c51b",
-            tokenIdToMint
-          )
-      ).to.be.revertedWithCustomError(contract, "InvalidSignature");
+        contract.connect(student_1).claim(salt, invalidSignature, tokenIdToMint)
+      )
+        .to.be.revertedWithCustomError(contract, "InvalidSignature")
+        .withArgs(salt, invalidSignature, tokenIdToMint, student_1.address);
       expect(
         await contract.balanceOf(student_1.address, tokenIdToMint)
       ).to.be.equal(0);
@@ -265,7 +263,22 @@ describe("Titan Achievements Function Tests", function () {
       ).not.to.be.reverted;
 
       expect(
+        await contract
+          .connect(owner)
+          .safeBatchTransferFrom(
+            owner.address,
+            student_2.address,
+            [tokenIdToMint2],
+            [1],
+            []
+          )
+      ).not.to.be.reverted;
+
+      expect(
         await contract.balanceOf(owner.address, tokenIdToMint2)
+      ).to.be.equal(0);
+      expect(
+        await contract.balanceOf(student_2.address, tokenIdToMint2)
       ).to.be.equal(1);
     });
   });

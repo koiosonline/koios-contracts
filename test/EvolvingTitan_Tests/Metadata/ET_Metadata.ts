@@ -44,6 +44,16 @@ describe("Evolving Titan Metadata Tests", function () {
       .withArgs("Caller is not an admin", student_1.address);
   });
 
+  it("Should return empty string when tokenURI is called, but no baseURI has been set", async function () {
+    const { contract, salt, token, student_1 } = await loadFixture(
+      metadataFixture
+    );
+
+    await contract.connect(student_1).claim(salt, token);
+
+    expect(await contract.tokenURI(1)).to.be.equal("");
+  });
+
   it("Should let an admin address update base URI", async function () {
     const { contract, owner } = await loadFixture(metadataFixture);
 
@@ -62,16 +72,6 @@ describe("Evolving Titan Metadata Tests", function () {
     expect(await contract.tokenURI(1)).to.be.equal(
       "https://newbaseuri.io/1.json"
     );
-  });
-
-  it("Should return empty string when tokenURI is called, but no baseURI has been set", async function () {
-    const { contract, salt, token, student_1 } = await loadFixture(
-      metadataFixture
-    );
-
-    await contract.connect(student_1).claim(salt, token);
-
-    expect(await contract.tokenURI(1)).to.be.equal("");
   });
 
   it("Should revert when token does not exist", async function () {

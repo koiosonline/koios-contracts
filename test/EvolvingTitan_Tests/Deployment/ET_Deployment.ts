@@ -75,4 +75,11 @@ describe("Evoling Titan Deployment Tests", function () {
     expect(await contract.claimedNFT(student_1.address)).to.be.equal(false);
     expect(await contract.claimedNFT(student_2.address)).to.be.equal(false);
   });
+
+  it("Should correctly set the name and symbol for the contract ", async function () {
+    const { contract } = await loadFixture(deployEvolvingTitanFixture);
+
+    expect(await contract.name()).to.be.equal("KOIOS Evolving Titan");
+    expect(await contract.symbol()).to.be.equal("eTITAN");
+  });
 });

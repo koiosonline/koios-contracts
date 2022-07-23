@@ -77,4 +77,11 @@ describe("Titan Achievements Deployment Tests", function () {
     expect(await contract.claimedNFT(student_1.address, 1)).to.be.equal(false);
     expect(await contract.claimedNFT(student_2.address, 1)).to.be.equal(false);
   });
+
+  it("Should correctly set the name and symbol for the contract ", async function () {
+    const { contract } = await loadFixture(deployTitanAchievementsFixture);
+
+    expect(await contract.name()).to.be.equal("KOIOS Titan Achievements");
+    expect(await contract.symbol()).to.be.equal("TA");
+  });
 });
