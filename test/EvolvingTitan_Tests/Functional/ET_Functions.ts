@@ -114,7 +114,11 @@ describe("Evolving Titan Function Tests", function () {
       const token = await owner.signMessage(ethers.utils.arrayify(payloadHash));
 
       expect(
-        await contract.verifyTokenForAddress(salt, token, student_1.address)
+        await contract["verifyTokenForAddress(string,bytes,address)"](
+          salt,
+          token,
+          student_1.address
+        )
       ).to.be.equal(true);
     });
 
@@ -154,14 +158,11 @@ describe("Evolving Titan Function Tests", function () {
 
     it("Should revert transaction, given incorrect signature", async function () {
       const { contract, salt, student_1 } = await loadFixture(claimFixture);
-      expect(
-        contract
-          .connect(student_1)
-          .claim(
-            salt,
-            "0x346a39d20604ded0e99e102010ce5cc7de5510e420adba18e00487425841058817eed03ae59038b9bfab518ee51029de930cda1a1cdba111b244215144f704c51b"
-          )
-      ).to.be.revertedWithCustomError(contract, "InvalidToken");
+      const invalidSignature =
+        "0x346a39d20604ded0e99e102010ce5cc7de5510e420adba18e00487425841058817eed03ae59038b9bfab518ee51029de930cda1a1cdba111b244215144f704c51b";
+      expect(contract.connect(student_1).claim(salt, invalidSignature))
+        .to.be.revertedWithCustomError(contract, "InvalidSignature")
+        .withArgs(salt, invalidSignature, student_1.address);
       expect(await contract.balanceOf(student_1.address)).to.be.equal(0);
     });
 
