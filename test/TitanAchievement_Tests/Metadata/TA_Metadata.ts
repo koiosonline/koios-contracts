@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import crypto from "crypto";
 
-describe("Evolving Titan Metadata Tests", function () {
+describe("Titan Achievements Metadata Tests", function () {
   async function metadataFixture() {
     // Contracts are deployed using the first signer/account by default
     const [owner, student_1, student_2] = await ethers.getSigners();

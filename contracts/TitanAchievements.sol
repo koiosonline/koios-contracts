@@ -55,14 +55,6 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
     }
 
     /**
-    * @dev Checks if the caller has the TRANSFER_ROLE.
-    */
-    modifier callerIsTransferrer() {
-        if(!hasRole(TRANSFER_ROLE,  _msgSender())) revert PermissionDenied("Caller is not a transferrer",  _msgSender());
-        _;
-    }
-
-    /**
      * @dev Mints a new token with the given ID to the caller. Requires the caller has not claimed given ID and a valid signature.
      * @param _salt The random generated salt for the signature.
      * @param _signature The signature signed by the signer.
@@ -129,24 +121,13 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
      * @param _tokenId The ID for the token.
      * @param _data The data to transfer.
     */
-    function _safeTransferFrom(address _from,
-        address _to,
-        uint256 _tokenId, uint256 _amount, bytes memory _data) internal virtual override(ERC1155) callerIsTransferrer {
-            super._safeTransferFrom(_from, _to, _tokenId, _amount, _data);
-    }
-
-    /**
-     * @dev Override safeBatchTransferFrom function from the ERC-1155 standard, making batch transfers only available to addresses that have a TRANSFER_ROLE
-     * @param _from The address to transfer from.
-     * @param _to The address to transfer to.
-     * @param _ids The IDS for the tokens.
-     * @param _amounts The amounts of the tokens.
-     * @param _data The data to transfer.
-    */
-    function _safeBatchTransferFrom(address _from,
-        address _to,
-        uint256[] memory _ids, uint256[] memory _amounts, bytes memory _data) internal virtual override(ERC1155) callerIsTransferrer {
-            super._safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
+    function _beforeTokenTransfer(address operator, address _from, address _to, uint256[] memory _tokenId, 
+        uint256[] memory _amount, bytes memory _data) internal virtual override(ERC1155) {
+            super._beforeTokenTransfer(operator, _from, _to, _tokenId, _amount, _data);
+            if(_from == address(0) || hasRole(TRANSFER_ROLE,  _msgSender())){
+                return;
+            }
+            revert PermissionDenied("Caller is not a transferrer",  _msgSender());
     }
 
     /**

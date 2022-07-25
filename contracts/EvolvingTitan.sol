@@ -55,14 +55,6 @@ contract EvolvingTitan is AccessControlEnumerable, ERC721Enumerable, Ownable, Si
     }
 
     /**
-    * @dev Checks if the caller has the TRANSFER_ROLE.
-    */
-    modifier callerIsTransferrer() {
-        if(!hasRole(TRANSFER_ROLE,  _msgSender())) revert PermissionDenied("Caller is not a transferrer",  _msgSender());
-        _;
-    }
-
-    /**
      * @dev Mints a new token to the caller. Requires the caller passes a valid signature and hasn't claimed.
      * @param _salt The random generated salt for the signature.
      * @param _signature The signature signed by the signer.
@@ -118,15 +110,18 @@ contract EvolvingTitan is AccessControlEnumerable, ERC721Enumerable, Ownable, Si
     }
 
     /**
-     * @dev Overrides the _transfer function from the inherited ERC721 contract.
+     * @dev Overrides the _beforeTokenTransfer function from the inherited ERC721Enumerable contract.
+     * Checks if the caller has the Transfer_ROLE or if the transfer is to the 0x0 address.
      * @param _from The address to transfer the token from.
      * @param _to The address to transfer the token to.
      * @param _tokenId The tokenID to transfer.
      */
-    function _transfer(address _from,
-        address _to,
-        uint256 _tokenId) internal virtual override(ERC721) callerIsTransferrer {
-            super._transfer(_from, _to, _tokenId);
+    function _beforeTokenTransfer(address _from, address _to, uint256 _tokenId) internal virtual override(ERC721Enumerable){
+        super._beforeTokenTransfer(_from, _to, _tokenId);
+        if(_from == address(0) || hasRole(TRANSFER_ROLE,  _msgSender())){
+            return;
+        }
+        revert PermissionDenied("Caller is not a transferrer",  _msgSender());
     }
 
     /**
