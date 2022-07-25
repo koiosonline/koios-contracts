@@ -110,7 +110,7 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
     }
 
     /**
-     * @dev Override safeTransferFrom function from the ERC-1155 standard, making transfers only available to addresses that have a TRANSFER_ROLE
+     * @dev Override _beforeTokenTransfer function from the ERC-1155 standard, making transfers only available to addresses that have a TRANSFER_ROLE or the 0x0 address.
      * @param _from The address to transfer from.
      * @param _to The address to transfer to.
      * @param _tokenId The ID for the token.
