@@ -39,22 +39,6 @@ contract EvolvingTitan is AccessControlEnumerable, ERC721Enumerable, Ownable, Si
     }
 
     /**
-    * @dev Checks if the caller has the DEFAULT_ADMIN_ROLE.
-    */
-    modifier callerIsAdmin() {
-        if(!hasRole(DEFAULT_ADMIN_ROLE,  _msgSender())) revert PermissionDenied("Caller is not an admin",  _msgSender());
-        _;
-    }
-
-    /**
-    * @dev Checks if the caller has the SIGNER_ROLE.
-    */
-    modifier callerIsSigner() {
-        if(!hasRole(SIGNER_ROLE,  _msgSender())) revert PermissionDenied("Caller is not a signer",  _msgSender());
-        _;
-    }
-
-    /**
      * @dev Mints a new token to the caller. Requires the caller passes a valid signature and hasn't claimed.
      * @param _salt The random generated salt for the signature.
      * @param _signature The signature signed by the signer.
@@ -73,7 +57,8 @@ contract EvolvingTitan is AccessControlEnumerable, ERC721Enumerable, Ownable, Si
      * @dev Sets the signer for the ECDSA signature, requires caller to have SIGNER_ROLE.
      * @param _newSigner The new signer address.
     */
-    function setSigner(address _newSigner) public callerIsSigner {
+    function setSigner(address _newSigner) external {
+        if(!hasRole(SIGNER_ROLE,  _msgSender())) revert PermissionDenied("Caller is not a signer",  _msgSender());
         _setSigner(_newSigner);
     }
 
@@ -89,7 +74,8 @@ contract EvolvingTitan is AccessControlEnumerable, ERC721Enumerable, Ownable, Si
      * @dev Sets base URI for the contract.
      * @param _newURI The new baseURI for the contract.
     */
-    function setBaseURI(string calldata _newURI) external callerIsAdmin {
+    function setBaseURI(string calldata _newURI) external {
+        if(!hasRole(DEFAULT_ADMIN_ROLE,  _msgSender())) revert PermissionDenied("Caller is not an admin",  _msgSender());
         _tokenBaseURI = _newURI;
     }
 

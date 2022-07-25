@@ -199,27 +199,35 @@ describe("Evolving Titan Function Tests", function () {
       const { contract, owner, student_1 } = await loadFixture(transferFixture);
 
       expect(
-        contract["safeTransferFrom(address,address,uint256)"](
-          student_1.address,
-          owner.address,
-          1
-        )
+        contract
+          .connect(student_1)
+          ["safeTransferFrom(address,address,uint256)"](
+            student_1.address,
+            owner.address,
+            1
+          )
       )
         .to.be.revertedWithCustomError(contract, "PermissionDenied")
-        .withArgs("Caller is not a signer", student_1.address);
-      expect(contract.transferFrom(student_1.address, owner.address, 1))
-        .to.be.revertedWithCustomError(contract, "PermissionDenied")
-        .withArgs("Caller is not a signer", student_1.address);
+        .withArgs("Caller is not a transferrer", student_1.address);
       expect(
-        contract["safeTransferFrom(address,address,uint256,bytes)"](
-          student_1.address,
-          owner.address,
-          1,
-          ""
-        )
+        contract
+          .connect(student_1)
+          .transferFrom(student_1.address, owner.address, 1)
       )
         .to.be.revertedWithCustomError(contract, "PermissionDenied")
-        .withArgs("Caller is not a signer", student_1.address);
+        .withArgs("Caller is not a transferrer", student_1.address);
+      expect(
+        contract
+          .connect(student_1)
+          ["safeTransferFrom(address,address,uint256,bytes)"](
+            student_1.address,
+            owner.address,
+            1,
+            ""
+          )
+      )
+        .to.be.revertedWithCustomError(contract, "PermissionDenied")
+        .withArgs("Caller is not a transferrer", student_1.address);
     });
 
     it("Should complete when a transferrer tries to transfer", async function () {

@@ -45,15 +45,7 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
         if(!hasRole(DEFAULT_ADMIN_ROLE,  _msgSender())) revert PermissionDenied("Caller is not an admin",  _msgSender());
         _;
     }
-
-    /**
-    * @dev Checks if the caller has the SIGNER_ROLE.
-    */
-    modifier callerIsSigner() {
-        if(!hasRole(SIGNER_ROLE,  _msgSender())) revert PermissionDenied("Caller is not a signer",  _msgSender());
-        _;
-    }
-
+    
     /**
      * @dev Mints a new token with the given ID to the caller. Requires the caller has not claimed given ID and a valid signature.
      * @param _salt The random generated salt for the signature.
@@ -76,7 +68,8 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
      * @dev Sets the signer for the ECDSA signature, requires caller to have SIGNER_ROLE.
      * @param _newSigner The new signer address.
     */
-    function setSigner(address _newSigner) public callerIsSigner {
+    function setSigner(address _newSigner) external {
+         if(!hasRole(SIGNER_ROLE,  _msgSender())) revert PermissionDenied("Caller is not a signer",  _msgSender());
         _setSigner(_newSigner);
     } 
 
