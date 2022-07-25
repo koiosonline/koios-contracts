@@ -30,7 +30,9 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
     error AddressAlreadyClaimed(address _address);
     error InvalidSignature(string _salt, bytes _signature, uint256 _tokenId, address _caller);
     error TokenIDDoesNotExist(uint256 _tokenId);
-    error PermissionDenied(string _errorMessage, address _caller);
+    error PermissionDeniedCallerIsNotASigner(address _caller);
+    error PermissionDeniedCallerIsNotATransferrer(address _caller);
+    error PermissionDeniedCallerIsNotAnAdmin(address _caller);
 
     constructor() ERC1155("") {  
         _setupRole(DEFAULT_ADMIN_ROLE,  _msgSender());
@@ -42,10 +44,10 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
     * @dev Checks if the caller has the DEFAULT_ADMIN_ROLE.
     */
     modifier callerIsAdmin() {
-        if(!hasRole(DEFAULT_ADMIN_ROLE,  _msgSender())) revert PermissionDenied("Caller is not an admin",  _msgSender());
+        if(!hasRole(DEFAULT_ADMIN_ROLE,  _msgSender())) revert PermissionDeniedCallerIsNotAnAdmin( _msgSender());
         _;
     }
-    
+
     /**
      * @dev Mints a new token with the given ID to the caller. Requires the caller has not claimed given ID and a valid signature.
      * @param _salt The random generated salt for the signature.
@@ -69,7 +71,7 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
      * @param _newSigner The new signer address.
     */
     function setSigner(address _newSigner) external {
-         if(!hasRole(SIGNER_ROLE,  _msgSender())) revert PermissionDenied("Caller is not a signer",  _msgSender());
+         if(!hasRole(SIGNER_ROLE,  _msgSender())) revert PermissionDeniedCallerIsNotASigner(_msgSender());
         _setSigner(_newSigner);
     } 
 
@@ -120,7 +122,7 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
             if(_from == address(0) || hasRole(TRANSFER_ROLE,  _msgSender())){
                 return;
             }
-            revert PermissionDenied("Caller is not a transferrer",  _msgSender());
+            revert PermissionDeniedCallerIsNotATransferrer(_msgSender());
     }
 
     /**

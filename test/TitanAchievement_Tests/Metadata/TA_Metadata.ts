@@ -44,8 +44,11 @@ describe("Titan Achievements Metadata Tests", function () {
     const { contract, student_1 } = await loadFixture(metadataFixture);
 
     expect(contract.connect(student_1).setBaseURI("https://newbaseuri.io/"))
-      .to.be.revertedWithCustomError(contract, "PermissionDenied")
-      .withArgs("Caller is not an admin", student_1.address);
+      .to.be.revertedWithCustomError(
+        contract,
+        "PermissionDeniedCallerIsNotAnAdmin"
+      )
+      .withArgs(student_1.address);
   });
 
   it("Should not let a non-admin address update token URI", async function () {
@@ -54,8 +57,11 @@ describe("Titan Achievements Metadata Tests", function () {
     expect(
       contract.connect(student_1).setTokenURI(1, "https://newtokenuri.io/")
     )
-      .to.be.revertedWithCustomError(contract, "PermissionDenied")
-      .withArgs("Caller is not an admin", student_1.address);
+      .to.be.revertedWithCustomError(
+        contract,
+        "PermissionDeniedCallerIsNotAnAdmin"
+      )
+      .withArgs(student_1.address);
   });
 
   it("Should let an admin address update base URI", async function () {
