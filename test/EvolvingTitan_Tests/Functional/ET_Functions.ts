@@ -37,6 +37,15 @@ describe("Evolving Titan Function Tests", function () {
     const payloadHash = ethers.utils.keccak256(payload);
     const token = await owner.signMessage(ethers.utils.arrayify(payloadHash));
 
+    // Prepare valid signature for student_2
+    const salt2 = crypto.randomBytes(16).toString("base64");
+    const payload2 = ethers.utils.defaultAbiCoder.encode(
+      ["string", "address", "address"],
+      [salt2, contract.address, student_2.address]
+    );
+    const payloadHash2 = ethers.utils.keccak256(payload2);
+    const token2 = await owner.signMessage(ethers.utils.arrayify(payloadHash2));
+
     return {
       contract,
       owner,
@@ -45,6 +54,8 @@ describe("Evolving Titan Function Tests", function () {
       salt,
       token,
       signer,
+      salt2,
+      token2,
     };
   }
 
@@ -128,19 +139,24 @@ describe("Evolving Titan Function Tests", function () {
       );
 
       expect(contract.connect(student_1).setSigner(student_2.address))
-        .to.be.revertedWithCustomError(contract, "PermissionDenied")
-        .withArgs("Caller is not a signer", student_1.address);
+        .to.be.revertedWithCustomError(
+          contract,
+          "PermissionDeniedCallerIsNotASigner"
+        )
+        .withArgs(student_1.address);
     });
   });
 
   describe("Claim Tests", function () {
     it("Should let student_1 claim a token, given correct signature", async function () {
-      const { contract, token, salt, student_1 } = await loadFixture(
-        claimFixture
-      );
+      const { contract, token, salt, student_1, student_2, token2, salt2 } =
+        await loadFixture(claimFixture);
       expect(await contract.connect(student_1).claim(salt, token)).not.to.be
         .reverted;
+      expect(await contract.connect(student_2).claim(salt2, token2)).not.to.be
+        .reverted;
       expect(await contract.balanceOf(student_1.address)).to.be.equal(1);
+      expect(await contract.balanceOf(student_2.address)).to.be.equal(1);
     });
 
     it("Should emit a tokenMinted event after claim", async function () {
@@ -186,27 +202,44 @@ describe("Evolving Titan Function Tests", function () {
       const { contract, owner, student_1 } = await loadFixture(transferFixture);
 
       expect(
-        contract["safeTransferFrom(address,address,uint256)"](
-          student_1.address,
-          owner.address,
-          1
-        )
+        contract
+          .connect(student_1)
+          ["safeTransferFrom(address,address,uint256)"](
+            student_1.address,
+            owner.address,
+            1
+          )
       )
-        .to.be.revertedWithCustomError(contract, "PermissionDenied")
-        .withArgs("Caller is not a signer", student_1.address);
-      expect(contract.transferFrom(student_1.address, owner.address, 1))
-        .to.be.revertedWithCustomError(contract, "PermissionDenied")
-        .withArgs("Caller is not a signer", student_1.address);
+        .to.be.revertedWithCustomError(
+          contract,
+          "PermissionDeniedCallerIsNotATransferrer"
+        )
+        .withArgs(student_1.address);
       expect(
-        contract["safeTransferFrom(address,address,uint256,bytes)"](
-          student_1.address,
-          owner.address,
-          1,
-          ""
-        )
+        contract
+          .connect(student_1)
+          .transferFrom(student_1.address, owner.address, 1)
       )
-        .to.be.revertedWithCustomError(contract, "PermissionDenied")
-        .withArgs("Caller is not a signer", student_1.address);
+        .to.be.revertedWithCustomError(
+          contract,
+          "PermissionDeniedCallerIsNotATransferrer"
+        )
+        .withArgs(student_1.address);
+      expect(
+        contract
+          .connect(student_1)
+          ["safeTransferFrom(address,address,uint256,bytes)"](
+            student_1.address,
+            owner.address,
+            1,
+            ""
+          )
+      )
+        .to.be.revertedWithCustomError(
+          contract,
+          "PermissionDeniedCallerIsNotATransferrer"
+        )
+        .withArgs(student_1.address);
     });
 
     it("Should complete when a transferrer tries to transfer", async function () {

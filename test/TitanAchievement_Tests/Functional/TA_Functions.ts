@@ -142,8 +142,11 @@ describe("Titan Achievements Function Tests", function () {
       );
 
       expect(contract.connect(student_1).setSigner(student_2.address))
-        .to.be.revertedWithCustomError(contract, "PermissionDenied")
-        .withArgs("Caller is not a signer", student_1.address);
+        .to.be.revertedWithCustomError(
+          contract,
+          "PermissionDeniedCallerIsNotASigner"
+        )
+        .withArgs(student_1.address);
     });
   });
 
@@ -226,8 +229,11 @@ describe("Titan Achievements Function Tests", function () {
             []
           )
       )
-        .to.be.revertedWithCustomError(contract, "PermissionDenied")
-        .withArgs("Caller is not a transferrer", student_1.address);
+        .to.be.revertedWithCustomError(
+          contract,
+          "PermissionDeniedCallerIsNotATransferrer"
+        )
+        .withArgs(student_1.address);
       expect(
         contract.safeBatchTransferFrom(
           student_1.address,
@@ -237,8 +243,11 @@ describe("Titan Achievements Function Tests", function () {
           []
         )
       )
-        .to.be.revertedWithCustomError(contract, "PermissionDenied")
-        .withArgs("Caller is not a transferrer", student_1.address);
+        .to.be.revertedWithCustomError(
+          contract,
+          "PermissionDeniedCallerIsNotATransferrer"
+        )
+        .withArgs(student_1.address);
     });
 
     it("Should complete when a transferrer tries to transfer", async function () {

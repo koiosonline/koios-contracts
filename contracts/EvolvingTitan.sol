@@ -18,6 +18,9 @@ import "./SignedTokenVerifier.sol";
 contract EvolvingTitan is AccessControlEnumerable, ERC721Enumerable, Ownable, SignedTokenVerifier {
     using Strings for uint256;
 
+    string constant NAME = "KOIOS Evolving Titan";
+    string constant SYMBOL = "eTITAN";
+
     bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
     bytes32 public constant TRANSFER_ROLE = keccak256("TRANSFER_ROLE");
 
@@ -30,36 +33,14 @@ contract EvolvingTitan is AccessControlEnumerable, ERC721Enumerable, Ownable, Si
     error AddressAlreadyClaimed(address _caller);
     error InvalidSignature(string _salt, bytes _signature, address _caller);
     error TokenIDDoesNotExist(uint256 _tokenId);
-    error PermissionDenied(string _errorMessage, address _caller);
+    error PermissionDeniedCallerIsNotASigner(address _caller);
+    error PermissionDeniedCallerIsNotATransferrer(address _caller);
+    error PermissionDeniedCallerIsNotAnAdmin(address _caller);
 
-    constructor() ERC721("KOIOS Evolving Titan", "eTITAN") {  
+    constructor() ERC721(NAME, SYMBOL) {  
         _setupRole(DEFAULT_ADMIN_ROLE,  _msgSender());
         _setupRole(SIGNER_ROLE,   _msgSender());
         _setupRole(TRANSFER_ROLE,  _msgSender());      
-    }
-
-    /**
-    * @dev Checks if the caller has the DEFAULT_ADMIN_ROLE.
-    */
-    modifier callerIsAdmin() {
-        if(!hasRole(DEFAULT_ADMIN_ROLE,  _msgSender())) revert PermissionDenied("Caller is not an admin",  _msgSender());
-        _;
-    }
-
-    /**
-    * @dev Checks if the caller has the SIGNER_ROLE.
-    */
-    modifier callerIsSigner() {
-        if(!hasRole(SIGNER_ROLE,  _msgSender())) revert PermissionDenied("Caller is not a signer",  _msgSender());
-        _;
-    }
-
-    /**
-    * @dev Checks if the caller has the TRANSFER_ROLE.
-    */
-    modifier callerIsTransferrer() {
-        if(!hasRole(TRANSFER_ROLE,  _msgSender())) revert PermissionDenied("Caller is not a transferrer",  _msgSender());
-        _;
     }
 
     /**
@@ -81,7 +62,8 @@ contract EvolvingTitan is AccessControlEnumerable, ERC721Enumerable, Ownable, Si
      * @dev Sets the signer for the ECDSA signature, requires caller to have SIGNER_ROLE.
      * @param _newSigner The new signer address.
     */
-    function setSigner(address _newSigner) public callerIsSigner {
+    function setSigner(address _newSigner) external {
+        if(!hasRole(SIGNER_ROLE,  _msgSender())) revert PermissionDeniedCallerIsNotASigner(_msgSender());
         _setSigner(_newSigner);
     }
 
@@ -97,7 +79,8 @@ contract EvolvingTitan is AccessControlEnumerable, ERC721Enumerable, Ownable, Si
      * @dev Sets base URI for the contract.
      * @param _newURI The new baseURI for the contract.
     */
-    function setBaseURI(string calldata _newURI) external callerIsAdmin {
+    function setBaseURI(string calldata _newURI) external {
+        if(!hasRole(DEFAULT_ADMIN_ROLE,  _msgSender())) revert PermissionDeniedCallerIsNotAnAdmin(_msgSender());
         _tokenBaseURI = _newURI;
     }
 
@@ -118,20 +101,23 @@ contract EvolvingTitan is AccessControlEnumerable, ERC721Enumerable, Ownable, Si
     }
 
     /**
-     * @dev Overrides the _transfer function from the inherited ERC721 contract.
+     * @dev Overrides the _beforeTokenTransfer function from the inherited ERC721Enumerable contract.
+     * Checks if the caller has the Transfer_ROLE or if the transfer is to the 0x0 address.
      * @param _from The address to transfer the token from.
      * @param _to The address to transfer the token to.
      * @param _tokenId The tokenID to transfer.
-     */
-    function _transfer(address _from,
-        address _to,
-        uint256 _tokenId) internal virtual override(ERC721) callerIsTransferrer {
-            super._transfer(_from, _to, _tokenId);
+    */
+    function _beforeTokenTransfer(address _from, address _to, uint256 _tokenId) internal virtual override(ERC721Enumerable){
+        super._beforeTokenTransfer(_from, _to, _tokenId);
+        if(_from == address(0) || hasRole(TRANSFER_ROLE,  _msgSender())){
+            return;
+        }
+        revert PermissionDeniedCallerIsNotATransferrer(_msgSender());
     }
 
     /**
      * @dev See {IERC165-supportsInterface}.
-     */
+    */
     function supportsInterface(bytes4 interfaceId)
         public
         view

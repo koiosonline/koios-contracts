@@ -30,7 +30,9 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
     error AddressAlreadyClaimed(address _address);
     error InvalidSignature(string _salt, bytes _signature, uint256 _tokenId, address _caller);
     error TokenIDDoesNotExist(uint256 _tokenId);
-    error PermissionDenied(string _errorMessage, address _caller);
+    error PermissionDeniedCallerIsNotASigner(address _caller);
+    error PermissionDeniedCallerIsNotATransferrer(address _caller);
+    error PermissionDeniedCallerIsNotAnAdmin(address _caller);
 
     constructor() ERC1155("") {  
         _setupRole(DEFAULT_ADMIN_ROLE,  _msgSender());
@@ -42,23 +44,7 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
     * @dev Checks if the caller has the DEFAULT_ADMIN_ROLE.
     */
     modifier callerIsAdmin() {
-        if(!hasRole(DEFAULT_ADMIN_ROLE,  _msgSender())) revert PermissionDenied("Caller is not an admin",  _msgSender());
-        _;
-    }
-
-    /**
-    * @dev Checks if the caller has the SIGNER_ROLE.
-    */
-    modifier callerIsSigner() {
-        if(!hasRole(SIGNER_ROLE,  _msgSender())) revert PermissionDenied("Caller is not a signer",  _msgSender());
-        _;
-    }
-
-    /**
-    * @dev Checks if the caller has the TRANSFER_ROLE.
-    */
-    modifier callerIsTransferrer() {
-        if(!hasRole(TRANSFER_ROLE,  _msgSender())) revert PermissionDenied("Caller is not a transferrer",  _msgSender());
+        if(!hasRole(DEFAULT_ADMIN_ROLE,  _msgSender())) revert PermissionDeniedCallerIsNotAnAdmin( _msgSender());
         _;
     }
 
@@ -84,7 +70,8 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
      * @dev Sets the signer for the ECDSA signature, requires caller to have SIGNER_ROLE.
      * @param _newSigner The new signer address.
     */
-    function setSigner(address _newSigner) public callerIsSigner {
+    function setSigner(address _newSigner) external {
+         if(!hasRole(SIGNER_ROLE,  _msgSender())) revert PermissionDeniedCallerIsNotASigner(_msgSender());
         _setSigner(_newSigner);
     } 
 
@@ -123,30 +110,19 @@ contract TitanAchievements is AccessControlEnumerable, ERC1155URIStorage, Ownabl
     }
 
     /**
-     * @dev Override safeTransferFrom function from the ERC-1155 standard, making transfers only available to addresses that have a TRANSFER_ROLE
+     * @dev Override _beforeTokenTransfer function from the ERC-1155 standard, making transfers only available to addresses that have a TRANSFER_ROLE or the 0x0 address.
      * @param _from The address to transfer from.
      * @param _to The address to transfer to.
      * @param _tokenId The ID for the token.
      * @param _data The data to transfer.
     */
-    function _safeTransferFrom(address _from,
-        address _to,
-        uint256 _tokenId, uint256 _amount, bytes memory _data) internal virtual override(ERC1155) callerIsTransferrer {
-            super._safeTransferFrom(_from, _to, _tokenId, _amount, _data);
-    }
-
-    /**
-     * @dev Override safeBatchTransferFrom function from the ERC-1155 standard, making batch transfers only available to addresses that have a TRANSFER_ROLE
-     * @param _from The address to transfer from.
-     * @param _to The address to transfer to.
-     * @param _ids The IDS for the tokens.
-     * @param _amounts The amounts of the tokens.
-     * @param _data The data to transfer.
-    */
-    function _safeBatchTransferFrom(address _from,
-        address _to,
-        uint256[] memory _ids, uint256[] memory _amounts, bytes memory _data) internal virtual override(ERC1155) callerIsTransferrer {
-            super._safeBatchTransferFrom(_from, _to, _ids, _amounts, _data);
+    function _beforeTokenTransfer(address operator, address _from, address _to, uint256[] memory _tokenId, 
+        uint256[] memory _amount, bytes memory _data) internal virtual override(ERC1155) {
+            super._beforeTokenTransfer(operator, _from, _to, _tokenId, _amount, _data);
+            if(_from == address(0) || hasRole(TRANSFER_ROLE,  _msgSender())){
+                return;
+            }
+            revert PermissionDeniedCallerIsNotATransferrer(_msgSender());
     }
 
     /**
